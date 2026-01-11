@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if stats_view %}
+<article>
+  <h3>Campaign Stats: {{ camp.name }}</h3>
+  <p class="muted">Started: {{ camp.started_at }} • Completed: {{ camp.completed_at }}</p>
+
+  <h4>Status counts</h4>
+  <ul>
+    {% for r in counts %}
+      <li><b>{{ r.status }}</b>: {{ r.n }}</li>
+    {% endfor %}
+  </ul>
+
+  <h4>Last 50 messages</h4>
+  <table>
+    <thead><tr><th>To</th><th>Status</th><th>Error</th><th>Sent</th></tr></thead>
+    <tbody>
+      {% for m in last_msgs %}
+      <tr>
+        <td>{{ m.to_phone }}</td>
+        <td>{{ m.status }}</td>
+        <td>{{ m.error or "" }}</td>
+        <td>{{ m.sent_at or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="/campaigns?token={{token}}">← Back to campaigns</a>
+</article>
+{% else %}
+
+<article>
+  <h3>Create Campaign</h3>
+  <form method="post" action="/campaigns/create?token={{token}}">
+    <input name="name" placeholder="Campaign name" required>
+    <textarea name="message_template" rows="4" placeholder="Message template. Use {{name}}, {{phone}}, {{tags}}" required></textarea>
+    <input name="target_tag" placeholder="Target tag (optional). Example: vip">
+    <button type="submit">Create</button>
+  </form>
+  <p class="muted">All messages automatically include an opt-out link.</p>
+</article>
+
+<article>
+  <h3>Campaigns</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Target tag</th><th>Created</th><th>Started</th><th>Completed</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in campaigns %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.target_tag or "all" }}</td>
+        <td>{{ c.created_at }}</td>
+        <td>{{ c.started_at or "" }}</td>
+        <td>{{ c.completed_at or "" }}</td>
+        <td style="display:flex;gap:8px;align-items:center">
+          <form method="post" action="/campaigns/{{c.id}}/start?token={{token}}">
+            <button type="submit">Start</button>
+          </form>
+          <a href="/campaigns/{{c.id}}/stats?token={{token}}" class="secondary">Stats</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+
+{% endif %}
+{% endblock %}
