@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+
+<article>
+  <h3>Add Contact</h3>
+  <form method="post" action="/contacts/add?token={{token}}">
+    <div class="grid">
+      <input name="name" placeholder="Name (optional)">
+      <input name="phone" placeholder="Phone e.g. +2557..." required>
+      <input name="tags" placeholder="Tags e.g. vip,retail">
+    </div>
+    <label>
+      <input type="checkbox" name="consented">
+      Consented (opt-in)
+    </label>
+    <button type="submit">Save</button>
+  </form>
+</article>
+
+<article>
+  <h3>Bulk CSV Upload</h3>
+  <p class="muted">CSV columns: <code>phone,name,consented,tags</code></p>
+  <form method="post" action="/contacts/import_csv?token={{token}}" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Upload CSV</button>
+  </form>
+</article>
+
+<article>
+  <h3>Contacts (latest 500)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Phone</th><th>Name</th><th>Tags</th><th>Consented</th><th>Opted out</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in contacts %}
+      <tr>
+        <td>{{ c.phone }}</td>
+        <td>{{ c.name }}</td>
+        <td>{{ c.tags }}</td>
+        <td>{{ c.consented }}</td>
+        <td>{{ c.opted_out }}</td>
+        <td>
+          <form method="post" action="/contacts/{{c.id}}/optout?token={{token}}">
+            <button type="submit" class="secondary">Opt-out</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+
+{% endblock %}

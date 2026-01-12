@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<article>
+  <h3>Login</h3>
+  <p class="muted">Enter your admin token to access the dashboard.</p>
+
+  <form method="get" action="/dashboard">
+    <label>Admin Token</label>
+    <input type="password" name="token" placeholder="ADMIN_TOKEN" required>
+    <button type="submit">Open Dashboard</button>
+  </form>
+</article>
+{% endblock %}

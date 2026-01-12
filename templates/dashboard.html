@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section>
+  <article>
+    <h3>Overview</h3>
+    <div class="grid">
+      <div><b>Contacts:</b> {{ stats.contacts }}</div>
+      <div><b>Opted-out:</b> {{ stats.opted_out }}</div>
+      <div><b>Campaigns:</b> {{ stats.campaigns }}</div>
+    </div>
+
+    <h4 style="margin-top:16px">Message Queue</h4>
+    <pre>{{ stats.messages }}</pre>
+
+    <p class="muted">
+      Tip: If sends fail, confirm AT_USERNAME/AT_API_KEY and your sender ID approval.
+    </p>
+  </article>
+</section>
+{% endblock %}
