@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 import africastalking
+import requests
 
 load_dotenv()
 
@@ -23,6 +24,9 @@ PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("
 AT_USERNAME = os.getenv("AT_USERNAME", "sandbox")
 AT_API_KEY = os.getenv("AT_API_KEY", "")
 AT_SENDER_ID = os.getenv("AT_SENDER_ID", "").strip() or None
+AT_CA_BUNDLE = os.getenv("AT_CA_BUNDLE", "").strip()
+AT_SSL_VERIFY = os.getenv("AT_SSL_VERIFY", "true").strip().lower()
+AT_SSL_VERIFY_ENABLED = AT_SSL_VERIFY not in {"0", "false", "no"}
 
 SEND_PER_SECOND = max(1, min(30, int(os.getenv("SEND_PER_SECOND", "2"))))
 MAX_DAILY_PER_CONTACT = max(1, min(20, int(os.getenv("MAX_DAILY_PER_CONTACT", "3"))))
@@ -128,6 +132,22 @@ def require_admin(request: Request):
 # Africa's Talking init
 # -------------------------
 _sms_client_ready = False
+_requests_ssl_patched = False
+
+
+def configure_requests_ssl():
+    global _requests_ssl_patched
+    if _requests_ssl_patched:
+        return
+    if not AT_SSL_VERIFY_ENABLED:
+        original_request = requests.sessions.Session.request
+
+        def patched_request(self, method, url, **kwargs):
+            kwargs.setdefault("verify", False)
+            return original_request(self, method, url, **kwargs)
+
+        requests.sessions.Session.request = patched_request
+    _requests_ssl_patched = True
 
 def init_sms():
     global _sms_client_ready
@@ -136,6 +156,11 @@ def init_sms():
     if not AT_API_KEY:
         # Allow running dashboard even if key missing (no send)
         return
+    if AT_CA_BUNDLE:
+        if not os.path.exists(AT_CA_BUNDLE):
+            raise Exception(f"AT_CA_BUNDLE file not found: {AT_CA_BUNDLE}")
+        os.environ["REQUESTS_CA_BUNDLE"] = AT_CA_BUNDLE
+    configure_requests_ssl()
     africastalking.initialize(AT_USERNAME, AT_API_KEY)
     _sms_client_ready = True
 
@@ -157,7 +182,14 @@ def send_sms_africastalking(to_phone: str, body: str) -> str:
     if AT_SENDER_ID:
         data["sender_id"] = AT_SENDER_ID
 
-    resp = sms.send(**data)
+    try:
+        resp = sms.send(**data)
+    except requests.exceptions.SSLError as exc:
+        raise Exception(
+            "SSL error while connecting to Africa's Talking. "
+            "Check system time, CA certificates, proxy settings, "
+            "or configure AT_CA_BUNDLE / AT_SSL_VERIFY in .env."
+        ) from exc
 
     # Parse SDK response
     rec = None
